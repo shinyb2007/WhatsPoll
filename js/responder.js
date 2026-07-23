@@ -173,7 +173,7 @@ class ResponderExperience {
         const selectedOpt = poll.options[this.selectedOptionIdx];
         
         try {
-            const res = await fetch('/api/vote', {
+            const res = await window.WhatsPollFetch('/api/vote', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -212,7 +212,7 @@ class ResponderExperience {
         const selectedOpt = poll.options[this.selectedOptionIdxHome];
         
         try {
-            const res = await fetch('/api/vote', {
+            const res = await window.WhatsPollFetch('/api/vote', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

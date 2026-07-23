@@ -707,22 +707,38 @@ class CreatorWorkspace {
     }
 
     async handleStudioPromptGenerate(query) {
-        let templateKey = 'meeting';
-        if (query.includes('lunch') || query.includes('go for') || query.includes('food')) templateKey = 'lunch';
-        else if (query.includes('logo') || query.includes('club') || query.includes('design')) templateKey = 'logo';
-        else if (query.includes('meeting') || query.includes('time') || query.includes('calendar')) templateKey = 'meeting';
+        let pollData = null;
+        try {
+            const res = await window.WhatsPollFetch('/api/ai/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: query })
+            });
+            if (res.ok) {
+                pollData = await res.json();
+            }
+        } catch (e) {
+            console.warn("AI generation failed, using local templates:", e);
+        }
 
-        let pollData = POLL_TEMPLATES[templateKey];
-        if (!POLL_TEMPLATES[templateKey]) {
-            pollData = {
-                question: query,
-                options: [
-                    { text: "Option A: Approve as draft", emoji: "✅" },
-                    { text: "Option B: Hold for review", emoji: "⏳" }
-                ],
-                time: "1.5 mins",
-                advice: "Ensure options are mutually exclusive."
-            };
+        if (!pollData) {
+            let templateKey = 'meeting';
+            if (query.includes('lunch') || query.includes('go for') || query.includes('food')) templateKey = 'lunch';
+            else if (query.includes('logo') || query.includes('club') || query.includes('design')) templateKey = 'logo';
+            else if (query.includes('meeting') || query.includes('time') || query.includes('calendar')) templateKey = 'meeting';
+
+            pollData = POLL_TEMPLATES[templateKey];
+            if (!POLL_TEMPLATES[templateKey]) {
+                pollData = {
+                    question: query,
+                    options: [
+                        { text: "Option A: Approve as draft", emoji: "✅" },
+                        { text: "Option B: Hold for review", emoji: "⏳" }
+                    ],
+                    time: "1.5 mins",
+                    advice: "Ensure options are mutually exclusive."
+                };
+            }
         }
 
         this.pollDraft.question = pollData.question;
@@ -752,7 +768,7 @@ class CreatorWorkspace {
         this.studioPublishBtn.style.backgroundColor = "#2563EB";
 
         try {
-            const res = await fetch('/api/poll', {
+            const res = await window.WhatsPollFetch('/api/poll', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -802,7 +818,7 @@ class CreatorWorkspace {
         this.promptInputHome.value = `Create a ${type}: ${template.question}`;
 
         try {
-            const res = await fetch('/api/poll', {
+            const res = await window.WhatsPollFetch('/api/poll', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -864,7 +880,7 @@ class CreatorWorkspace {
         }
 
         try {
-            const res = await fetch('/api/poll', {
+            const res = await window.WhatsPollFetch('/api/poll', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

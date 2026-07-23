@@ -11,3 +11,5 @@ ENV/
 # Local Database & Prev/State cache files
 db.json
 *.log
+.env
+.env.local

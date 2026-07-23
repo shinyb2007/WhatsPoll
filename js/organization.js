@@ -57,7 +57,7 @@ class TeamsDashboard {
         if (!email) return;
 
         try {
-            const res = await fetch('/api/team/member', {
+            const res = await window.WhatsPollFetch('/api/team/member', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -81,7 +81,7 @@ class TeamsDashboard {
 
     async handleDeleteMember(email) {
         try {
-            const res = await fetch('/api/team/member/delete', {
+            const res = await window.WhatsPollFetch('/api/team/member/delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
