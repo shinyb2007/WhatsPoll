@@ -38,13 +38,83 @@ def is_supabase_enabled():
         and not SUPABASE_ANON_KEY.startswith("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.your-key-here")
     )
 
+# --- 2. Automatic SQL Migrations check ---
+def run_supabase_migrations():
+    if not is_supabase_enabled():
+        return
+        
+    db_pass = os.environ.get('SUPABASE_DB_PASSWORD', '')
+    if not db_pass or db_pass.startswith("your-supabase-db"):
+        print("SUPABASE_DB_PASSWORD not configured or is default placeholder. Skipping automatic migrations.")
+        return
+
+    # Install pg8000 library automatically if it is missing
+    try:
+        import pg8000.dbapi
+    except ImportError:
+        print("pg8000 library not found. Installing automatically...")
+        try:
+            import subprocess
+            import sys
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "pg8000"])
+            import pg8000.dbapi
+            print("Successfully installed pg8000 client!")
+        except Exception as e:
+            print(f"Failed to automatically install pg8000: {e}")
+            return
+
+    try:
+        parsed = urllib.parse.urlparse(SUPABASE_URL)
+        project_id = parsed.hostname.split('.')[0]
+        db_host = f"db.{project_id}.supabase.co"
+        
+        print(f"Connecting to Supabase PostgreSQL database at {db_host}:5432...")
+        conn = pg8000.dbapi.connect(
+            host=db_host,
+            database="postgres",
+            user="postgres",
+            password=db_pass,
+            port=5432,
+            timeout=15
+        )
+        cursor = conn.cursor()
+        
+        # Check if table public.polls exists
+        cursor.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'polls');")
+        exists = cursor.fetchone()[0]
+        
+        if not exists:
+            print("Supabase database tables not found. Automatically running schema creation from supabase_schema.sql...")
+            if os.path.exists('supabase_schema.sql'):
+                with open('supabase_schema.sql', 'r', encoding='utf-8') as f:
+                    sql_script = f.read()
+                
+                # Split statements by semicolon and run sequentially
+                statements = sql_script.split(';')
+                for stmt in statements:
+                    stmt = stmt.strip()
+                    if stmt:
+                        cursor.execute(stmt)
+                conn.commit()
+                print("Database migration and tables successfully initialized in Supabase!")
+            else:
+                print("Error: supabase_schema.sql file not found. Skipping SQL execution.")
+        else:
+            print("Supabase PostgreSQL tables are present and verified.")
+            
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"Failed to check/execute database migrations: {e}")
+        traceback.print_exc()
+
 print("WhatsPoll Backend Configurations:")
 print(f"- Port: {PORT}")
 print(f"- Supabase Enabled: {is_supabase_enabled()}")
 if not is_supabase_enabled():
     print("WARNING: Supabase URL and Anon Key are missing or are default placeholders. All database calls will fail with 503 Service Unavailable.")
 
-# --- 2. Supabase API Helper ---
+# --- 3. Supabase REST API Helper ---
 def supabase_api_call(endpoint, method='GET', body=None, user_jwt=None, is_auth=False):
     base_url = SUPABASE_URL.rstrip('/')
     api_path = "/auth/v1/" if is_auth else "/rest/v1/"
@@ -79,7 +149,23 @@ def supabase_api_call(endpoint, method='GET', body=None, user_jwt=None, is_auth=
         print(f"Supabase Request Error on {method} {url}: {e}")
         raise e
 
-# --- 3. OpenAI Client Helper ---
+# --- 4. Supabase Auth API Helper ---
+def supabase_auth_req(path, method='POST', body=None):
+    url = f"{SUPABASE_URL.rstrip('/')}/auth/v1/{path.lstrip('/')}"
+    headers = {
+        'apikey': SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+    }
+    data = json.dumps(body).encode('utf-8') if body else None
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req) as res:
+            return json.loads(res.read().decode('utf-8'))
+    except Exception as e:
+        print(f"Supabase auth request failed: {e}")
+        raise e
+
+# --- 5. OpenAI Client Helper ---
 def openai_gpt_generate(prompt):
     if not OPENAI_API_KEY or OPENAI_API_KEY.startswith("sk-proj-your-openai"):
         return None
@@ -115,7 +201,7 @@ def openai_gpt_generate(prompt):
         print(f"OpenAI Generation API failed: {e}")
         return None
 
-# --- 4. Main HTTP Request Router ---
+# --- 6. Main HTTP Request Router ---
 class WhatsPollHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         # Disable caching for API development convenience
@@ -312,9 +398,7 @@ class WhatsPollHandler(http.server.SimpleHTTPRequestHandler):
                 "options": options,
                 "completion_time": completion_time
             }
-            # Insert new poll
             inserted_poll = supabase_api_call("polls", method='POST', body=poll_row, user_jwt=jwt)
-            # Fetch updated state
             self.handle_get_state()
         except Exception as e:
             self.respond_json(500, {"error": "Failed to create poll in Supabase.", "detail": str(e)})
@@ -330,7 +414,6 @@ class WhatsPollHandler(http.server.SimpleHTTPRequestHandler):
 
         try:
             jwt = self.get_user_jwt()
-            # Fetch latest active poll
             polls = supabase_api_call("polls?order=created_at.desc&limit=1", user_jwt=jwt)
             if not polls:
                 self.respond_json(400, {"error": "No active poll found to vote on."})
@@ -428,6 +511,9 @@ WhatsPollHandler.extensions_map.update({
 })
 
 if __name__ == '__main__':
+    # Run automatic Supabase database schema setup if credentials are provided
+    run_supabase_migrations()
+
     server_address = ('', PORT)
     httpd = http.server.HTTPServer(server_address, WhatsPollHandler)
     print(f"WhatsPoll Backend running at http://localhost:{PORT}/")
