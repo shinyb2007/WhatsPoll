@@ -138,7 +138,7 @@ def supabase_api_call(endpoint, method='GET', body=None, user_jwt=None, is_auth=
     data_payload = json.dumps(body).encode('utf-8') if body else None
     req = urllib.request.Request(url, data=data_payload, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(req) as res:
+        with urllib.request.urlopen(req, timeout=10) as res:
             res_data = res.read().decode('utf-8')
             return json.loads(res_data) if res_data else []
     except urllib.error.HTTPError as he:
@@ -157,7 +157,7 @@ def supabase_auth_req(path, method='POST', body=None):
     }
     data = json.dumps(body).encode('utf-8') if body else None
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    with urllib.request.urlopen(req) as res:
+    with urllib.request.urlopen(req, timeout=10) as res:
         return json.loads(res.read().decode('utf-8'))
 
 # --- 6. OpenAI Client Helper ---
