@@ -206,6 +206,35 @@ CREATE POLICY "Allow team managers to remove members"
 
 
 -- 8. Enable Realtime triggers for live sync
-alter publication supabase_realtime add table public.votes;
-alter publication supabase_realtime add table public.polls;
-alter publication supabase_realtime add table public.comments;
+DO $$
+BEGIN
+    -- Add votes if not already in publication
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_rel pr 
+        JOIN pg_publication p ON p.oid = pr.prpubid 
+        JOIN pg_class c ON c.oid = pr.prrelid 
+        WHERE p.pubname = 'supabase_realtime' AND c.relname = 'votes'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.votes;
+    END IF;
+
+    -- Add polls if not already in publication
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_rel pr 
+        JOIN pg_publication p ON p.oid = pr.prpubid 
+        JOIN pg_class c ON c.oid = pr.prrelid 
+        WHERE p.pubname = 'supabase_realtime' AND c.relname = 'polls'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.polls;
+    END IF;
+
+    -- Add comments if not already in publication
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_rel pr 
+        JOIN pg_publication p ON p.oid = pr.prpubid 
+        JOIN pg_class c ON c.oid = pr.prrelid 
+        WHERE p.pubname = 'supabase_realtime' AND c.relname = 'comments'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
+    END IF;
+END $$;
