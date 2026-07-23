@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="WhatsPoll is a clean and trustworthy platform to create, participate in, and understand beautiful polls with smart insights.">
+    <title>WhatsPoll — Polls made smarter.</title>
+    <!-- Google Fonts: Inter (Notion/Linear style typography) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Redesigned stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Rounded Outline Icons (Lucide) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    
+    <!-- Unified App Container -->
+    <div class="app-container">
+        
+        <!-- Sticky Solid Navigation Bar -->
+        <header class="app-header" id="app-header">
+            <div class="nav-brand" id="nav-logo">
+                <div class="logo-checkmark">
+                    <i data-lucide="check"></i>
+                </div>
+                <span class="logo-text">WhatsPoll</span>
+            </div>
+            
+            <nav class="app-nav">
+                <a href="#home" class="nav-link active" data-target="home-section">Home</a>
+                <a href="#create" class="nav-link" data-target="create-section">Create</a>
+                <a href="#vote" class="nav-link" data-target="vote-section">Vote</a>
+                <a href="#results" class="nav-link" data-target="results-section">Results</a>
+                <a href="#history" class="nav-link" data-target="history-section">History</a>
+                <a href="#teams" class="nav-link" data-target="teams-section">Teams</a>
+            </nav>
+            
+            <div class="nav-actions">
+                <!-- Theme Select dropdown -->
+                <div class="theme-dropdown-wrapper">
+                    <select id="appearance-theme-select" class="flat-select theme-select">
+                        <option value="system">💻 System</option>
+                        <option value="light">☀ Light</option>
+                        <option value="dark">🌙 Dark</option>
+                    </select>
+                </div>
+                
+                <!-- Notification Bell Button -->
+                <button class="nav-icon-btn" aria-label="Notifications" id="bell-btn">
+                    <i data-lucide="bell"></i>
+                    <span class="notification-dot"></span>
+                </button>
+                
+                <!-- Profile Avatar -->
+                <div class="profile-avatar" title="View Profile" id="profile-avatar-btn">AR</div>
+                
+                <!-- Login Link button -->
+                <button class="nav-login-btn">Login</button>
+                
+                <!-- Create Poll Button -->
+                <a href="#create" class="nav-create-btn" id="nav-create-poll-btn">+ Create Poll</a>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- SECTION 1: HOME / UNIFIED LIVE PLAYGROUND -->
+            <section id="home-section" class="content-section active">
+                <div style="margin-bottom: 32px; text-align: left;">
+                    <h1 class="hero-title" style="margin-bottom: 16px;">Polls made smarter.</h1>
+                    <p class="hero-desc">Create beautiful polls in seconds, collect responses, and understand results instantly.</p>
+                </div>
+
+                <!-- Three-Column Unified App Preview Sandbox -->
+                <div class="sandbox-wrapper">
+                    
+                    <!-- LEFT COLUMN: Create Sandbox -->
+                    <div class="card sandbox-panel">
+                        <div style="margin-bottom: 16px;">
+                            <h3 class="card-title" style="font-size: 18px;"><i data-lucide="sparkles" style="width: 16px; height: 16px; color: var(--primary-blue); vertical-align: middle; margin-right: 4px;"></i> Create Poll</h3>
+                            <span class="subtext">Write your topic to generate options.</span>
+                        </div>
+                        
+                        <div class="create-prompt-box" style="margin-bottom: 16px;">
+                            <textarea id="ai-prompt-input-home" placeholder="What would you like to ask?" style="height: 100px; padding: 12px; font-size:15px; border-radius: var(--radius-btn); width:100%; background-color:var(--bg-main); border:1px solid var(--border-color); resize:none; outline:none; font-family:var(--font-body);"></textarea>
+                            <button class="prompt-generate-btn" id="generate-poll-btn-home" style="bottom: 12px; right: 12px; width: 32px; height: 32px;" title="AI Generate Poll">
+                                <i data-lucide="sparkles" style="width:14px; height:14px;"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Quick Create Row (Always visible) -->
+                        <div class="quick-create-section">
+                            <span class="label-text">Quick Create</span>
+                            <div class="quick-create-row" id="quick-create-row-home">
+                                <button class="quick-chip" data-type="poll">🗳 Poll</button>
+                                <button class="quick-chip" data-type="survey">📋 Survey</button>
+                                <button class="quick-chip" data-type="quiz">❓ Quiz</button>
+                                <button class="quick-chip" data-type="decision">⚖ Decision</button>
+                                <button class="quick-chip" data-type="schedule">📅 Schedule</button>
+                                <button class="quick-chip" data-type="event">🎉 Event</button>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Contextual Suggestions Row (Revealed on Focus) -->
+                        <div class="dynamic-suggestions-section hidden" id="dynamic-suggestions-section-home">
+                            <span class="label-text">Suggestions for you</span>
+                            <div class="suggestions-row" id="suggestions-row-home">
+                                <!-- Populated dynamically based on time of day -->
+                            </div>
+                        </div>
+
+                        <!-- Suggestions Wording Banner -->
+                        <div class="wording-advice-box hidden" id="wording-advice-box-home" style="margin-top: 12px; padding: 12px; font-size: 13px;">
+                            <i data-lucide="info" style="width:16px; height:16px;"></i>
+                            <div>
+                                <span id="wording-advice-text-home">Consider phrasing this as a selective choice.</span>
+                            </div>
+                        </div>
+
+                        <!-- Generation loader -->
+                        <div class="create-loader hidden" id="create-loader-home" style="margin-top: 12px; padding: 24px;">
+                            <i data-lucide="loader" class="spinner-icon" style="width:20px; height:20px;"></i>
+                            <span class="subtext">Writing suggestions...</span>
+                        </div>
+                    </div>
+
+                    <!-- CENTER COLUMN: Vote Sandbox -->
+                    <div class="card sandbox-panel" id="vote-card-box-home">
+                        <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                            <span class="label-text">Live Sandbox Poll</span>
+                            <h3 id="vote-poll-question-home" class="card-title" style="font-size: 18px; margin-top: 4px;">Select the best meeting time.</h3>
+                            <p id="vote-poll-desc-home" class="subtext" style="margin-top:4px;">We need to select a core alignment window for Q3 sprints updates.</p>
+                        </div>
+
+                        <div class="vote-options-group" id="vote-options-list-home" style="gap: 8px;">
+                            <!-- Populated dynamically -->
+                        </div>
+
+                        <div class="vote-slider-block" style="margin-top: 16px; padding-top: 12px;">
+                            <div class="slider-lbl-flex" style="font-size: 12px; margin-bottom: 6px;">
+                                <span>Certainty</span>
+                                <span id="vote-confidence-value-home" style="color:var(--primary-green);">80%</span>
+                            </div>
+                            <input type="range" id="vote-confidence-slider-home" min="0" max="100" value="80" class="flat-slider" style="height: 6px;">
+                        </div>
+
+                        <div class="input-cell" style="margin-top: 12px; margin-bottom: 12px; gap: 6px;">
+                            <label for="vote-reason-text-home" class="label-text">Add a reason (Optional)</label>
+                            <input type="text" id="vote-reason-text-home" class="flat-input" placeholder="e.g. Best overlap." style="padding: 10px 12px; font-size:13px; height:40px;">
+                        </div>
+
+                        <button class="vote-btn-flat primary-btn" id="submit-vote-btn-home" style="width:100%; height:40px; font-size: 14px;">Vote</button>
+                    </div>
+
+                    <!-- Sandbox success state (inside center panel) -->
+                    <div class="card sandbox-panel friendly-success-box hidden" id="vote-success-box-home" style="padding: 24px; justify-content:center;">
+                        <div class="success-check-circle" style="width: 48px; height: 48px;">
+                            <i data-lucide="smile" style="width:24px; height:24px;"></i>
+                        </div>
+                        <h4 class="card-title" style="font-size: 18px; margin-top:8px;">Thanks for voting!</h4>
+                        <p class="subtext" style="margin-top: 4px;">Your vote was successfully added to the results column on the right.</p>
+                        <button class="secondary-btn" id="reset-vote-home-btn" style="margin-top: 16px; padding: 0 16px; height:38px; font-size:13px;">Vote Again</button>
+                    </div>
+
+                    <!-- RIGHT COLUMN: Results Sandbox -->
+                    <div class="card sandbox-panel">
+                        <div style="margin-bottom: 16px;">
+                            <h3 class="card-title" style="font-size: 18px;"><i data-lucide="bar-chart-2" style="width: 16px; height: 16px; color: var(--primary-blue); vertical-align: middle; margin-right: 4px;"></i> Live Results</h3>
+                            <span class="subtext">Updates in real-time.</span>
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 16px; padding: 12px; background-color: var(--bg-main); border:1px solid var(--border-color); border-radius:var(--radius-btn); font-size:13px;">
+                            <div>
+                                <span class="label-text" style="font-size:10px;">Responses</span>
+                                <strong id="results-responses-count-home" style="display:block; font-size:16px; color:var(--text-primary); margin-top:2px;">124</strong>
+                            </div>
+                            <div>
+                                <span class="label-text" style="font-size:10px;">Avg Certainty</span>
+                                <strong id="results-confidence-avg-home" style="display:block; font-size:16px; color:var(--text-primary); margin-top:2px;">82%</strong>
+                            </div>
+                            <div>
+                                <span class="label-text" style="font-size:10px;">Leader</span>
+                                <strong id="results-winning-option-home" style="display:block; font-size:16px; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:80px; margin-top:2px;">Option A</strong>
+                            </div>
+                        </div>
+
+                        <!-- Bar chart -->
+                        <div class="flat-bar-chart-container" id="results-bar-chart-container-home" style="gap: 12px; margin-bottom: 16px;">
+                            <!-- Drawn dynamically -->
+                        </div>
+
+                        <!-- Insights Summary -->
+                        <div class="ai-insights-block" style="margin-bottom:0; padding:16px; border-radius:var(--radius-btn);">
+                            <div class="ai-insights-header" style="font-size: 13px; margin-bottom: 6px;">
+                                <i data-lucide="sparkles" style="width:14px; height:14px;"></i>
+                                <span>Smart Insights</span>
+                            </div>
+                            <p id="results-ai-insights-text-home" style="font-size: 13px; line-height: 1.5; color: var(--text-primary);">
+                                Option A holds the majority share with 64% approval. High confidence indices indicate participants feel strongly aligned on this.
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Features Cards Section -->
+                <div class="features-title-section" style="margin-top: 48px;">
+                    <h2 class="section-title">Everything you need for perfect polls</h2>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-outline-card">
+                        <i data-lucide="zap"></i>
+                        <h3>Create Faster</h3>
+                        <p>Describe your idea and let the AI generate options, emojis, and structures instantly.</p>
+                    </div>
+                    <div class="feature-outline-card">
+                        <i data-lucide="tablet"></i>
+                        <h3>Easy Voting</h3>
+                        <p>A friendly, accessible voting layout that renders perfectly on mobile and desktop screens.</p>
+                    </div>
+                    <div class="feature-outline-card">
+                        <i data-lucide="bot"></i>
+                        <h3>Ask AI</h3>
+                        <p>Responders can request neutral explanations and context about options before making a selection.</p>
+                    </div>
+                    <div class="feature-outline-card">
+                        <i data-lucide="bar-chart-2"></i>
+                        <h3>Smart Results</h3>
+                        <p>Understand responses clearly with automated summaries, keyword audits, and clean charts.</p>
+                    </div>
+                    <div class="feature-outline-card">
+                        <i data-lucide="clock"></i>
+                        <h3>Response History</h3>
+                        <p>Find every poll you've created or answered in a clean, searchable timeline list.</p>
+                    </div>
+                    <div class="feature-outline-card">
+                        <i data-lucide="download"></i>
+                        <h3>Export</h3>
+                        <p>Download clean tables anytime. Supports saving reports as Excel, CSV, or executive PDF documents.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: CREATE PAGE (AI POLL STUDIO) -->
+            <section id="create-section" class="content-section">
+                <!-- Top AI Prompt Bar -->
+                <div style="margin-bottom: 24px;">
+                    <h2 class="section-title" style="font-size: 32px;">AI Poll Studio</h2>
+                    <p class="subtext">AI generates the first draft. You have complete creative control over every detail.</p>
+                </div>
+
+                <div class="studio-workspace">
+                    <!-- Top Toolbar -->
+                    <div class="studio-toolbar">
+                        <div class="toolbar-left">
+                            <button id="studio-undo-btn" class="outline-btn" style="padding:0 12px; height:36px;" title="Undo"><i data-lucide="undo" style="width:16px; height:16px;"></i></button>
+                            <button id="studio-redo-btn" class="outline-btn" style="padding:0 12px; height:36px;" title="Redo"><i data-lucide="redo" style="width:16px; height:16px;"></i></button>
+                            <span class="muted-text" id="studio-save-status" style="font-size:12px; margin-left:8px;"><i data-lucide="check" style="width:12px; height:12px; display:inline-block; vertical-align:middle; color:var(--primary-green); margin-right:4px;"></i> Draft auto-saved</span>
+                        </div>
+                        <div class="toolbar-center">
+                            <button class="device-toggle active" data-device="desktop" title="Desktop View"><i data-lucide="monitor" style="width:16px; height:16px;"></i></button>
+                            <button class="device-toggle" data-device="tablet" title="Tablet View"><i data-lucide="tablet" style="width:16px; height:16px;"></i></button>
+                            <button class="device-toggle" data-device="mobile" title="Mobile View"><i data-lucide="smartphone" style="width:16px; height:16px;"></i></button>
+                        </div>
+                        <div class="toolbar-right">
+                            <button class="accent-btn" id="studio-generate-btn" style="height:36px; font-size:13px;"><i data-lucide="sparkles" style="width:14px; height:14px;"></i> AI Formulate</button>
+                        </div>
+                    </div>
+
+                    <!-- Main Grid -->
+                    <div class="studio-grid">
+                        <!-- LEFT PANEL: Smart Option Editor -->
+                        <div class="card studio-panel-left">
+                            <h3 class="card-title" style="font-size: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;"><i data-lucide="edit-3" style="width:16px; height:16px; color:var(--primary-blue); vertical-align:middle; margin-right:4px;"></i> Content Editor</h3>
+                            
+                            <!-- Prompt Input Box (ChatGPT style inside editor) -->
+                            <div class="create-prompt-box" style="margin-bottom:0;">
+                                <textarea id="ai-prompt-input" placeholder="What would you like to create?" style="height:72px; padding:10px; font-size:14px; border-radius: var(--radius-btn); width:100%; resize:none; outline:none; background-color:var(--bg-main); border:1px solid var(--border-color); font-family:var(--font-body);"></textarea>
+                            </div>
+
+                            <!-- Quick Create chips (inside editor) -->
+                            <div class="quick-create-section" style="margin-top:0;">
+                                <div class="quick-create-row" id="quick-create-row" style="gap:4px;">
+                                    <button class="quick-chip" data-type="poll" style="font-size:11px; padding:4px 10px; height:28px;">🗳 Poll</button>
+                                    <button class="quick-chip" data-type="survey" style="font-size:11px; padding:4px 10px; height:28px;">📋 Survey</button>
+                                    <button class="quick-chip" data-type="quiz" style="font-size:11px; padding:4px 10px; height:28px;">❓ Quiz</button>
+                                    <button class="quick-chip" data-type="decision" style="font-size:11px; padding:4px 10px; height:28px;">⚖ Decision</button>
+                                    <button class="quick-chip" data-type="schedule" style="font-size:11px; padding:4px 10px; height:28px;">📅 Schedule</button>
+                                    <button class="quick-chip" data-type="event" style="font-size:11px; padding:4px 10px; height:28px;">🎉 Event</button>
+                                </div>
+                            </div>
+
+                            <!-- Disclosed suggestions -->
+                            <div class="dynamic-suggestions-section hidden" id="dynamic-suggestions-section" style="margin-top:0;">
+                                <div class="suggestions-row" id="suggestions-row"></div>
+                            </div>
+
+                            <hr style="border:0; height:1px; background-color:var(--border-color); margin: 4px 0;">
+
+                            <div class="input-cell" style="margin-bottom:0;">
+                                <label style="font-size:10px;">Question Title</label>
+                                <input type="text" id="studio-input-question" class="flat-input" style="height:40px; font-size:14px;" value="Select the best meeting time.">
+                            </div>
+
+                            <div class="input-cell" style="margin-bottom:0;">
+                                <label style="font-size:10px;">Description</label>
+                                <input type="text" id="studio-input-desc" class="flat-input" style="height:40px; font-size:14px;" value="We need to select a core alignment window for Q3 sprints updates.">
+                            </div>
+
+                            <!-- Editable Options List -->
+                            <div class="input-cell" style="margin-bottom:0;">
+                                <label style="font-size:10px;">Options</label>
+                                <div id="studio-options-list" style="display:flex; flex-direction:column; gap:8px;">
+                                    <!-- Populated dynamically -->
+                                </div>
+                                <button class="secondary-btn" id="studio-add-opt-btn" style="width:100%; height:36px; font-size:13px; margin-top:8px;"><i data-lucide="plus" style="width:14px; height:14px;"></i> Add Option</button>
+                            </div>
+
+                            <button class="primary-btn" id="studio-publish-btn" style="width:100%; height:42px; margin-top: auto;"><i data-lucide="send" style="width:14px; height:14px;"></i> One-click Publish</button>
+                        </div>
+
+                        <!-- CENTER CANVAS: Live Preview -->
+                        <div class="studio-canvas">
+                            <div id="studio-preview-device-wrapper">
+                                <!-- Preview card -->
+                                <div class="card flat-vote-card" id="studio-preview-card" style="width: 100%; max-width: 480px; background-color: var(--bg-card); font-family: var(--font-body); border-radius: var(--radius-card); border: 1px solid var(--border-color);">
+                                    <div class="vote-card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                                        <span class="label-text" id="studio-preview-type">Community Poll</span>
+                                        <h2 id="studio-preview-question" class="card-title" style="font-size: 20px; font-weight:600; margin-top:4px;">Select the best meeting time.</h2>
+                                        <p id="studio-preview-desc" class="subtext" style="margin-top:4px;">We need to select a core alignment window for Q3 sprints updates.</p>
+                                    </div>
+                                    <div class="vote-options-group" id="studio-preview-options" style="gap: 8px;">
+                                        <!-- Rendered dynamically -->
+                                    </div>
+                                    <div class="vote-slider-block" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                                        <div class="slider-lbl-flex" style="font-size: 11px; margin-bottom: 4px;">
+                                            <span>Certainty</span>
+                                            <span style="color:var(--primary-green);">80%</span>
+                                        </div>
+                                        <input type="range" min="0" max="100" value="80" class="flat-slider" style="height:5px;" disabled>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RIGHT PANEL: Canva Customization Sidebar -->
+                        <div class="card studio-panel-right">
+                            <h3 class="card-title" style="font-size: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;"><i data-lucide="sliders" style="width:16px; height:16px; color:var(--primary-blue); vertical-align:middle; margin-right:4px;"></i> Customizer</h3>
+                            
+                            <!-- Theme Presets Accordion -->
+                            <div class="accordion-section">
+                                <div class="accordion-header" data-target="acc-presets">
+                                    <span>🎨 Design Theme</span>
+                                    <i data-lucide="chevron-down" style="width:14px; height:14px;"></i>
+                                </div>
+                                <div class="accordion-content" id="acc-presets">
+                                    <div class="flat-select-wrapper">
+                                        <select id="studio-theme-select" class="flat-select" style="height:36px; font-size:13px;">
+                                            <option value="minimal">Minimal Theme</option>
+                                            <option value="modern">Modern Theme</option>
+                                            <option value="corporate">Corporate Theme</option>
+                                            <option value="gaming">Gaming Theme</option>
+                                            <option value="festival">Festival Theme</option>
+                                            <option value="education">Education Theme</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Colors Accordion -->
+                            <div class="accordion-section">
+                                <div class="accordion-header" data-target="acc-colors">
+                                    <span>🌈 Colors & Styling</span>
+                                    <i data-lucide="chevron-down" style="width:14px; height:14px;"></i>
+                                </div>
+                                <div class="accordion-content" id="acc-colors">
+                                    <div class="option-edit-row">
+                                        <span style="font-size:12px; flex:1;">Brand Color</span>
+                                        <input type="color" id="studio-color-primary" value="#22c55e" style="border:none; width:32px; height:32px; cursor:pointer;">
+                                        <input type="text" id="studio-color-primary-hex" class="flat-input" style="width:80px; height:32px; font-size:12px; padding:0 6px;" value="#22c55e">
+                                    </div>
+                                    <div class="option-edit-row">
+                                        <span style="font-size:12px; flex:1;">Accent Color</span>
+                                        <input type="color" id="studio-color-accent" value="#2563eb" style="border:none; width:32px; height:32px; cursor:pointer;">
+                                        <input type="text" id="studio-color-accent-hex" class="flat-input" style="width:80px; height:32px; font-size:12px; padding:0 6px;" value="#2563eb">
+                                    </div>
+                                    <div class="option-edit-row">
+                                        <span style="font-size:12px; flex:1;">Card Background</span>
+                                        <input type="color" id="studio-color-card" value="#f8fafc" style="border:none; width:32px; height:32px; cursor:pointer;">
+                                        <input type="text" id="studio-color-card-hex" class="flat-input" style="width:80px; height:32px; font-size:12px; padding:0 6px;" value="#f8fafc">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Typography Accordion -->
+                            <div class="accordion-section">
+                                <div class="accordion-header" data-target="acc-typo">
+                                    <span>🔤 Typography & Font</span>
+                                    <i data-lucide="chevron-down" style="width:14px; height:14px;"></i>
+                                </div>
+                                <div class="accordion-content" id="acc-typo">
+                                    <div class="flat-select-wrapper">
+                                        <select id="studio-font-select" class="flat-select" style="height:36px; font-size:13px;">
+                                            <option value="inter">Inter (Default)</option>
+                                            <option value="sfpro">SF Pro Display</option>
+                                            <option value="poppins">Poppins</option>
+                                            <option value="roboto">Roboto</option>
+                                        </select>
+                                    </div>
+                                    <div class="option-edit-row">
+                                        <span style="font-size:12px; flex:1;">Corner Radius</span>
+                                        <select id="studio-radius-select" class="flat-select" style="width:120px; height:32px; padding:0 8px; font-size:12px;">
+                                            <option value="0px">Sharp (0px)</option>
+                                            <option value="8px">Soft (8px)</option>
+                                            <option value="12px">Medium (12px)</option>
+                                            <option value="16px" selected>Rounded (16px)</option>
+                                            <option value="24px">Extra (24px)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Question Type Accordion -->
+                            <div class="accordion-section">
+                                <div class="accordion-header" data-target="acc-qtype">
+                                    <span>⚙️ Question Settings</span>
+                                    <i data-lucide="chevron-down" style="width:14px; height:14px;"></i>
+                                </div>
+                                <div class="accordion-content" id="acc-qtype">
+                                    <div class="flat-select-wrapper">
+                                        <select id="studio-qtype-select" class="flat-select" style="height:36px; font-size:13px;">
+                                            <option value="single">Single Choice</option>
+                                            <option value="multiple">Multiple Choice</option>
+                                            <option value="yesno">Yes or No</option>
+                                        </select>
+                                    </div>
+                                    <div class="option-edit-row">
+                                        <span style="font-size:12px; flex:1;">Live Results</span>
+                                        <label class="switch">
+                                            <input type="checkbox" id="studio-results-visible" checked>
+                                            <span class="slider-round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- AI Assistant Toolbox Accordion -->
+                            <div class="accordion-section">
+                                <div class="accordion-header" data-target="acc-ai-tools">
+                                    <span>✨ AI Assistant Toolbox</span>
+                                    <i data-lucide="chevron-down" style="width:14px; height:14px;"></i>
+                                </div>
+                                <div class="accordion-content" id="acc-ai-tools">
+                                    <button class="outline-btn" id="studio-ai-wording" style="width:100%; height:32px; font-size:11px; justify-content:flex-start;"><i data-lucide="pencil" style="width:12px; height:12px;"></i> Improve Wording</button>
+                                    <button class="outline-btn" id="studio-ai-emojis" style="width:100%; height:32px; font-size:11px; justify-content:flex-start;"><i data-lucide="smile" style="width:12px; height:12px;"></i> Suggest Emojis</button>
+                                    <button class="outline-btn" id="studio-ai-translate" style="width:100%; height:32px; font-size:11px; justify-content:flex-start;"><i data-lucide="globe" style="width:12px; height:12px;"></i> Translate to Spanish</button>
+                                    <button class="outline-btn" id="studio-ai-predict" style="width:100%; height:32px; font-size:11px; justify-content:flex-start;"><i data-lucide="clock" style="width:12px; height:12px;"></i> Predict completion time</button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: VOTE PAGE -->
+            <section id="vote-section" class="content-section">
+                <div class="vote-layout">
+                    
+                    <!-- Left Column: Poll voting interface card -->
+                    <div class="vote-preview-shell">
+                        <div class="card flat-vote-card" id="vote-card-box">
+                            <div class="vote-card-header">
+                                <span class="label-text">Community Poll</span>
+                                <h2 id="vote-poll-question" class="card-title" style="margin-top:4px;">Select the best meeting time.</h2>
+                                <p id="vote-poll-desc" class="subtext" style="margin-top:4px;">We need to select a core alignment window for Q3 sprints updates.</p>
+                            </div>
+
+                            <!-- Options Group -->
+                            <div class="vote-options-group" id="vote-options-list">
+                                <!-- Populated dynamically -->
+                            </div>
+
+                            <!-- Additional details -->
+                            <div class="vote-slider-block">
+                                <div class="slider-lbl-flex">
+                                    <span>Confidence in your choice</span>
+                                    <span id="vote-confidence-value" style="color:var(--primary-green);">80%</span>
+                                </div>
+                                <input type="range" id="vote-confidence-slider" min="0" max="100" value="80" class="flat-slider">
+                            </div>
+
+                            <div class="input-cell">
+                                <label for="vote-reason-text" class="label-text">Add a reason (Optional)</label>
+                                <input type="text" id="vote-reason-text" class="flat-input" placeholder="e.g. Best overlap for remote workers.">
+                            </div>
+
+                            <button class="vote-btn-flat primary-btn" id="submit-vote-btn">Vote</button>
+                        </div>
+
+                        <!-- Confirmation state (Initially hidden) -->
+                        <div class="card friendly-success-box hidden" id="vote-success-box">
+                            <div class="success-check-circle">
+                                <i data-lucide="smile"></i>
+                            </div>
+                            <h3 class="card-title">Thanks for voting!</h3>
+                            <p class="subtext">Your choice has been registered. You can now explore the live results summary.</p>
+                            <button class="accent-btn" id="go-to-results-btn" style="margin-top:16px;">See Live Results</button>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Ask AI Assist drawer -->
+                    <div class="ask-ai-sidebar">
+                        <div class="ai-sidebar-header">
+                            <i data-lucide="bot"></i>
+                            <h3 class="card-title" style="font-size: 18px;">Ask AI</h3>
+                        </div>
+                        <p class="subtext">
+                            Need help deciding? Ask the assistant for a neutral explanation of choices or details regarding schedules.
+                        </p>
+                        
+                        <div class="ai-sidebar-chat-viewport" id="ai-chat-viewport">
+                            <div class="ai-bubble bot">
+                                Hello! Ask me about the choices, schedules, or wording and I will provide neutral context.
+                            </div>
+                        </div>
+
+                        <div class="ai-chat-input-row">
+                            <input type="text" id="ai-chat-input" placeholder="Which option overlaps best with PST?">
+                            <button id="ai-chat-send" aria-label="Send message"><i data-lucide="send" style="width:14px; height:14px;"></i></button>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- SECTION 4: RESULTS PAGE -->
+            <section id="results-section" class="content-section">
+                <div class="results-header">
+                    <div>
+                        <h2 class="section-title">Live Results</h2>
+                        <p id="results-poll-question-subtitle" class="subtext" style="font-weight:600; color:var(--text-primary); margin-top:4px;">Select the best meeting time.</p>
+                    </div>
+                    <div class="results-meta-actions">
+                        <span style="font-size:13px; color:var(--text-secondary); display:flex; align-items:center; gap:8px; font-weight:500;">
+                            <span style="width:8px; height:8px; background-color:var(--primary-green); border-radius:50%; display:inline-block;"></span> Active Feed
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Metrics Rows -->
+                <div class="results-metrics-strip">
+                    <div class="metric-outline-card">
+                        <span>Total Responses</span>
+                        <h4 id="results-responses-count" class="stat-val">124</h4>
+                    </div>
+                    <div class="metric-outline-card">
+                        <span>Most Selected Option</span>
+                        <h4 id="results-winning-option" class="card-title" style="font-size: 22px; font-weight:700; margin-top:4px;">Option A</h4>
+                    </div>
+                    <div class="metric-outline-card">
+                        <span>Average Confidence</span>
+                        <h4 id="results-confidence-avg" class="stat-val">82%</h4>
+                    </div>
+                </div>
+
+                <!-- Interactive SVG Charts Grid -->
+                <div class="results-grid-row">
+                    <!-- Live Bar Chart -->
+                    <div class="card results-visual-card">
+                        <h3 class="card-title" style="font-size: 18px;">Live Responses</h3>
+                        <div class="flat-bar-chart-container" id="results-bar-chart-container">
+                            <!-- Drawn dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Pie Chart Layout -->
+                    <div class="card results-visual-card">
+                        <h3 class="card-title" style="font-size: 18px;">Percentage Share</h3>
+                        <div class="pie-flex-wrapper">
+                            <div id="results-pie-chart-container">
+                                <!-- Custom SVG Pie will be drawn here -->
+                            </div>
+                            <div class="pie-chart-keys" id="results-pie-keys-container">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="results-grid-row">
+                    <!-- Timeline Curve SVG -->
+                    <div class="card results-visual-card">
+                        <h3 class="card-title" style="font-size: 18px;">Timeline</h3>
+                        <div id="results-timeline-container" style="height:150px;">
+                            <!-- SVG Curve drawn here -->
+                        </div>
+                    </div>
+
+                    <!-- AI Insights summaries -->
+                    <div class="ai-insights-block">
+                        <div class="ai-insights-header">
+                            <i data-lucide="sparkles" style="width:18px; height:18px;"></i>
+                            <span>Smart Insights</span>
+                        </div>
+                        <p id="results-ai-insights-text">
+                            Option A holds the majority share with 64% approval. High confidence indices indicate participants feel strongly aligned on this. Responders keywords focus heavily on "flexibility", "timezone", and "focus hours". We recommend proceeding with the option A schedule.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Export Controls -->
+                <div style="border-top:1px solid var(--border-color); padding-top:24px; display:flex; justify-content:space-between; align-items:center;">
+                    <div class="export-row-group">
+                        <button class="outline-btn" id="export-excel-btn">Export Excel</button>
+                        <button class="outline-btn" id="export-csv-btn">Export CSV</button>
+                        <button class="outline-btn" id="export-pdf-btn">Export PDF</button>
+                    </div>
+                    <button class="outline-btn" id="share-results-btn"><i data-lucide="share" style="width:14px; height:14px; vertical-align:middle; margin-right:4px;"></i> Share results</button>
+                </div>
+            </section>
+
+            <!-- SECTION 5: HISTORY PAGE -->
+            <section id="history-section" class="content-section">
+                <div style="margin-bottom: 32px;">
+                    <h2 class="section-title">History</h2>
+                    <p>Timeline of every poll you have created or voted in.</p>
+                </div>
+
+                <!-- Search & Filters -->
+                <div class="history-controls">
+                    <input type="text" id="history-search" class="flat-input history-search-input" placeholder="Search polls by question name...">
+                    <button class="secondary-btn" id="history-search-btn">Search</button>
+                </div>
+
+                <div class="history-filters">
+                    <button class="filter-pill active" data-filter="all">All Polls</button>
+                    <button class="filter-pill" data-filter="created">Recently Created</button>
+                    <button class="filter-pill" data-filter="voted">Recently Voted</button>
+                    <button class="filter-pill" data-filter="favorites">Favorites</button>
+                </div>
+
+                <!-- Timeline List -->
+                <div class="history-timeline-list" id="history-timeline-list">
+                    <!-- Populated dynamically -->
+                </div>
+            </section>
+
+            <!-- SECTION 6: TEAMS PAGE -->
+            <section id="teams-section" class="content-section">
+                <div class="teams-layout">
+                    <!-- Left Sidebar Switcher -->
+                    <aside class="teams-sidebar">
+                        <div class="team-space-item active" data-team="office">🏢 Office Sync</div>
+                        <div class="team-space-item" data-team="college">🎓 College Club</div>
+                        <div class="team-space-item" data-team="school">🎒 School Committee</div>
+                        <div class="team-space-item" data-team="friends">⚽ Friends Group</div>
+                        <div class="team-space-item" data-team="family">🏠 Family Board</div>
+                        <div class="team-space-item" data-team="community">🌍 Community Hub</div>
+                    </aside>
+
+                    <!-- Right panel space manager -->
+                    <div class="card teams-main-card">
+                        <div class="teams-panel-header">
+                            <div>
+                                <h2 id="team-space-title" class="section-title" style="font-size: 26px;">Office Sync</h2>
+                                <p id="team-space-desc" class="subtext" style="margin-top:4px;">Company-wide sprints sync schedules and product sync updates.</p>
+                            </div>
+                            <button class="primary-btn" id="invite-team-members-btn">Invite Members</button>
+                        </div>
+
+                        <!-- Stats Strip -->
+                        <div class="teams-stats-row">
+                            <div class="metric-outline-card" style="padding: 16px;">
+                                <span>Active Members</span>
+                                <h4 id="team-active-members" class="stat-val" style="font-size:32px;">24</h4>
+                            </div>
+                            <div class="metric-outline-card" style="padding: 16px;">
+                                <span>Shared Polls</span>
+                                <h4 id="team-shared-polls" class="stat-val" style="font-size:32px;">18</h4>
+                            </div>
+                            <div class="metric-outline-card" style="padding: 16px;">
+                                <span>Space Visibility</span>
+                                <h4 class="card-title" style="font-size: 22px; font-weight:700; margin-top:8px;">Private</h4>
+                            </div>
+                        </div>
+
+                        <!-- Members Table list -->
+                        <div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                                <h3 class="card-title" style="font-size:18px;">Team Members</h3>
+                                <button class="outline-btn" id="new-member-row-btn" style="padding: 0 12px; font-size:12px; height:32px;">+ New Row</button>
+                            </div>
+                            
+                            <div class="team-table-wrapper">
+                                <table class="team-members-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Role</th>
+                                            <th>Permissions</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="team-members-tbody">
+                                        <!-- Rendered dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Divider above footer -->
+        <hr class="app-footer-divider">
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="footer-left">
+                <p>© 2026 WhatsPoll. All rights reserved.</p>
+            </div>
+            <div class="footer-center">
+                <span>Smarter polls. Better conversations.</span>
+            </div>
+            <div class="footer-right">
+                <a href="#privacy">Privacy</a>
+                <a href="#terms">Terms</a>
+                <a href="#contact">Contact</a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Script modules imports -->
+    <script type="module" src="js/creator.js"></script>
+    <script type="module" src="js/responder.js"></script>
+    <script type="module" src="js/analytics.js"></script>
+    <script type="module" src="js/passport.js"></script> <!-- History controller -->
+    <script type="module" src="js/organization.js"></script> <!-- Teams controller -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
