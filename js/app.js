@@ -87,7 +87,11 @@ class AppController {
 
     async fetchServerState() {
         try {
-            const res = await window.WhatsPollFetch('/api/state');
+            const urlParams = new URLSearchParams(window.location.search);
+            const pollId = urlParams.get('poll');
+            const url = pollId ? `/api/state?poll_id=${pollId}` : '/api/state';
+            
+            const res = await window.WhatsPollFetch(url);
             if (res.ok) {
                 const data = await res.json();
                 window.WhatsPollState = data;
@@ -96,6 +100,14 @@ class AppController {
                 const activeSec = document.querySelector('.content-section.active');
                 if (activeSec) {
                     this.navigateToSection(activeSec.id);
+                }
+
+                // If loading a specific deep-linked poll, auto-route to voting experience
+                if (pollId) {
+                    setTimeout(() => {
+                        this.navigateToSection('vote-section');
+                        this.updateActiveNavLink('vote-section');
+                    }, 50);
                 }
             }
         } catch (err) {

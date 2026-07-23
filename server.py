@@ -46,7 +46,6 @@ def decode_jwt_payload(jwt):
         if len(parts) < 2:
             return {}
         payload_b64 = parts[1]
-        # Pad string to valid length
         padding = '=' * (4 - (len(payload_b64) % 4))
         decoded = base64.urlsafe_b64decode(payload_b64 + padding).decode('utf-8')
         return json.loads(decoded)
@@ -70,7 +69,6 @@ def run_supabase_migrations():
         print("SUPABASE_DB_PASSWORD not configured or is default placeholder. Skipping automatic migrations.")
         return
 
-    # Install pg8000 library automatically if it is missing
     try:
         import pg8000.dbapi
     except ImportError:
@@ -111,7 +109,6 @@ def run_supabase_migrations():
                 with open('supabase_schema.sql', 'r', encoding='utf-8') as f:
                     sql_script = f.read()
                 
-                # Split statements by semicolon and run sequentially
                 statements = sql_script.split(';')
                 for stmt in statements:
                     stmt = stmt.strip()
@@ -238,14 +235,17 @@ class WhatsPollHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
     def get_user_jwt(self):
-        # Read user authentication JWT token from headers
         auth = self.headers.get('Authorization', '')
         if auth.startswith('Bearer '):
             return auth.split(' ', 1)[1]
         return self.headers.get('X-Supabase-Auth', None)
 
     def do_GET(self):
-        if self.path == '/api/state':
+        # Sanitize query parameters and trailing slashes to prevent 404 path mismatch
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path.rstrip('/')
+        
+        if path == '/api/state':
             self.handle_get_state()
         else:
             super().do_GET()
@@ -259,23 +259,26 @@ class WhatsPollHandler(http.server.SimpleHTTPRequestHandler):
         except Exception:
             payload = {}
 
-        if self.path == '/api/poll':
+        # Sanitize query parameters and trailing slashes
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path.rstrip('/')
+
+        if path == '/api/poll':
             self.handle_create_poll(payload)
-        elif self.path == '/api/vote':
+        elif path == '/api/vote':
             self.handle_submit_vote(payload)
-        elif self.path == '/api/team/member':
+        elif path == '/api/team/member':
             self.handle_add_member(payload)
-        elif self.path == '/api/team/member/delete':
+        elif path == '/api/team/member/delete':
             self.handle_delete_member(payload)
-        elif self.path == '/api/auth/signup':
+        elif path == '/api/auth/signup':
             self.handle_auth_action('signup', payload)
-        elif self.path == '/api/auth/login':
+        elif path == '/api/auth/login':
             self.handle_auth_action('token?grant_type=password', payload)
-        elif self.path == '/api/ai/generate':
+        elif path == '/api/ai/generate':
             self.handle_ai_generate(payload)
         else:
-            self.send_response(404)
-            self.end_headers()
+            self.respond_json(404, {"error": "Not Found", "message": f"Endpoint POST '{self.path}' is not registered."})
 
     def respond_json(self, status_code, data):
         self.send_response(status_code)
@@ -298,8 +301,16 @@ class WhatsPollHandler(http.server.SimpleHTTPRequestHandler):
             
         try:
             jwt = self.get_user_jwt()
-            # 1. Fetch polls
-            polls = supabase_api_call("polls?order=created_at.desc&limit=20", user_jwt=jwt)
+            
+            # Check for specific poll_id query parameter
+            parsed_url = urllib.parse.urlparse(self.path)
+            query_params = urllib.parse.parse_qs(parsed_url.query)
+            poll_id = query_params.get('poll_id', [None])[0]
+            
+            if poll_id:
+                polls = supabase_api_call(f"polls?id=eq.{poll_id}", user_jwt=jwt)
+            else:
+                polls = supabase_api_call("polls?order=created_at.desc&limit=20", user_jwt=jwt)
             
             if not polls:
                 self.respond_json(200, {
@@ -311,12 +322,12 @@ class WhatsPollHandler(http.server.SimpleHTTPRequestHandler):
                 return
 
             current = polls[0]
-            poll_id = current['id']
+            current_id = current['id']
             
-            # 2. Fetch votes for current poll
-            votes = supabase_api_call(f"votes?poll_id=eq.{poll_id}", user_jwt=jwt)
+            # Fetch votes for current poll
+            votes = supabase_api_call(f"votes?poll_id=eq.{current_id}", user_jwt=jwt)
             
-            # 3. Calculate metrics
+            # Calculate metrics
             options = current.get('options', [])
             tallies = [0] * len(options)
             for v in votes:
@@ -336,7 +347,7 @@ class WhatsPollHandler(http.server.SimpleHTTPRequestHandler):
                 conf_avg = f"{round(conf_sum / len(votes))}%"
 
             current_poll_state = {
-                "id": poll_id,
+                "id": current_id,
                 "title": current['title'],
                 "description": current.get('description', ''),
                 "options": options,
@@ -347,7 +358,7 @@ class WhatsPollHandler(http.server.SimpleHTTPRequestHandler):
                 "voteCounts": tallies
             }
 
-            # 4. Construct history array
+            # Construct history array
             history = []
             for p in polls:
                 opts = p.get('options', [])
@@ -362,7 +373,7 @@ class WhatsPollHandler(http.server.SimpleHTTPRequestHandler):
                     "responses": 0
                 })
 
-            # 5. Fetch teams
+            # Fetch teams
             db_teams = supabase_api_call("teams", user_jwt=jwt)
             teams_state = {}
             for t in db_teams:
@@ -447,7 +458,7 @@ class WhatsPollHandler(http.server.SimpleHTTPRequestHandler):
             
             poll_id = polls[0]['id']
             
-            # Prevent 409 unique constraint errors: delete old vote first if exists
+            # Clear duplicate vote first
             if user_id:
                 try:
                     supabase_api_call(f"votes?poll_id=eq.{poll_id}&user_id=eq.{user_id}", method='DELETE', user_jwt=jwt)

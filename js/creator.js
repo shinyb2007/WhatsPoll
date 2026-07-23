@@ -783,6 +783,18 @@ class CreatorWorkspace {
                 const responseData = await res.json();
                 window.WhatsPollState = responseData.state;
 
+                // Extract new poll ID and construct shareable link
+                const newPoll = responseData.state?.currentPoll;
+                const pollId = newPoll ? newPoll.id : '';
+                const shareUrl = `${window.location.origin}/?poll=${pollId}`;
+                
+                // Copy to clipboard
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(shareUrl).catch(() => {});
+                }
+                
+                alert(`🎉 Poll Published Successfully!\n\nShareable link has been copied to your clipboard:\n${shareUrl}`);
+
                 if (window.WhatsPollResponder) {
                     window.WhatsPollResponder.resetVoteCard();
                     window.WhatsPollResponder.resetVoteCardHome();
