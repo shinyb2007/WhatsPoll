@@ -1,0 +1,13 @@
+# Python Virtual Environment
+.venv/
+venv/
+ENV/
+
+# JetBrains IDE settings
+.idea/
+*.iml
+*.iws
+
+# Local Database & Prev/State cache files
+db.json
+*.log
