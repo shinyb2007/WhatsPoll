@@ -763,6 +763,16 @@ class CreatorWorkspace {
     }
 
     async handlePublishStudio() {
+        const jwt = localStorage.getItem('whatspoll-jwt');
+        if (!jwt) {
+            alert("🔑 Please Sign In or Sign Up using the top-right button to publish your poll to Supabase!");
+            const authModal = document.getElementById('auth-modal');
+            if (authModal) {
+                authModal.classList.remove('hidden');
+            }
+            return;
+        }
+
         const origText = this.studioPublishBtn.innerText;
         this.studioPublishBtn.innerText = "Publishing...";
         this.studioPublishBtn.style.backgroundColor = "#2563EB";

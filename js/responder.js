@@ -169,6 +169,16 @@ class ResponderExperience {
             return;
         }
 
+        const jwt = localStorage.getItem('whatspoll-jwt');
+        if (!jwt) {
+            alert("🔑 Please Sign In or Sign Up using the top-right button to cast your vote on Supabase!");
+            const authModal = document.getElementById('auth-modal');
+            if (authModal) {
+                authModal.classList.remove('hidden');
+            }
+            return;
+        }
+
         const poll = window.WhatsPollState.currentPoll;
         const selectedOpt = poll.options[this.selectedOptionIdx];
         
@@ -205,6 +215,16 @@ class ResponderExperience {
     async handleVoteSubmitHome() {
         if (this.selectedOptionIdxHome === null) {
             alert("Please pick an option before voting.");
+            return;
+        }
+
+        const jwt = localStorage.getItem('whatspoll-jwt');
+        if (!jwt) {
+            alert("🔑 Please Sign In or Sign Up using the top-right button to cast your vote on Supabase!");
+            const authModal = document.getElementById('auth-modal');
+            if (authModal) {
+                authModal.classList.remove('hidden');
+            }
             return;
         }
 
