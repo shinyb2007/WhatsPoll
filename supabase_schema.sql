@@ -1,9 +1,11 @@
--- WhatsPoll Supabase PostgreSQL Migration Script
+-- WhatsPoll Supabase PostgreSQL Database Schema
+-- Paste this script into your Supabase SQL Editor (https://supabase.com/dashboard/project/_/sql)
 
--- 1. PROFILES Table
+-- 1. PROFILES Table (linked to Supabase Auth users)
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
-    name TEXT,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
     avatar_url TEXT,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
@@ -11,14 +13,19 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- Enable RLS for Profiles
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
+-- Clean existing policies to prevent "already exists" errors
+DROP POLICY IF EXISTS "Allow public read access to profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Allow users to update their own profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Allow users to insert their own profiles" ON public.profiles;
+
 CREATE POLICY "Allow public read access to profiles" 
     ON public.profiles FOR SELECT USING (true);
 
 CREATE POLICY "Allow users to update their own profiles" 
-    ON public.profiles FOR UPDATE USING (true);
+    ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
 CREATE POLICY "Allow users to insert their own profiles" 
-    ON public.profiles FOR INSERT WITH CHECK (true);
+    ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
 
 -- 2. POLLS Table
@@ -42,17 +49,22 @@ CREATE TABLE IF NOT EXISTS public.polls (
 -- Enable RLS for Polls
 ALTER TABLE public.polls ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Allow public read access to polls" ON public.polls;
+DROP POLICY IF EXISTS "Allow authenticated users to create polls" ON public.polls;
+DROP POLICY IF EXISTS "Allow creator to update their own polls" ON public.polls;
+DROP POLICY IF EXISTS "Allow creator to delete their own polls" ON public.polls;
+
 CREATE POLICY "Allow public read access to polls" 
     ON public.polls FOR SELECT USING (true);
 
-CREATE POLICY "Allow anyone to create polls" 
-    ON public.polls FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow authenticated users to create polls" 
+    ON public.polls FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
 CREATE POLICY "Allow creator to update their own polls" 
-    ON public.polls FOR UPDATE USING (true);
+    ON public.polls FOR UPDATE USING (auth.uid() = created_by);
 
 CREATE POLICY "Allow creator to delete their own polls" 
-    ON public.polls FOR DELETE USING (true);
+    ON public.polls FOR DELETE USING (auth.uid() = created_by);
 
 
 -- 3. VOTES Table
@@ -71,14 +83,20 @@ CREATE TABLE IF NOT EXISTS public.votes (
 -- Enable RLS for Votes
 ALTER TABLE public.votes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Allow public read access to votes" ON public.votes;
+DROP POLICY IF EXISTS "Allow authenticated users to vote" ON public.votes;
+DROP POLICY IF EXISTS "Allow user to delete (undo) their own votes" ON public.votes;
+DROP POLICY IF EXISTS "Allow anyone to vote" ON public.votes;
+DROP POLICY IF EXISTS "Allow anyone to delete votes" ON public.votes;
+
 CREATE POLICY "Allow public read access to votes" 
     ON public.votes FOR SELECT USING (true);
 
-CREATE POLICY "Allow anyone to vote" 
-    ON public.votes FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow authenticated users to vote" 
+    ON public.votes FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Allow anyone to delete votes" 
-    ON public.votes FOR DELETE USING (true);
+CREATE POLICY "Allow user to delete (undo) their own votes" 
+    ON public.votes FOR DELETE USING (auth.uid() = user_id);
 
 
 -- 4. COMMENTS Table
@@ -94,11 +112,15 @@ CREATE TABLE IF NOT EXISTS public.comments (
 -- Enable RLS for Comments
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Allow public read access to comments" ON public.comments;
+DROP POLICY IF EXISTS "Allow authenticated users to post comments" ON public.comments;
+DROP POLICY IF EXISTS "Allow anyone to post comments" ON public.comments;
+
 CREATE POLICY "Allow public read access to comments" 
     ON public.comments FOR SELECT USING (true);
 
-CREATE POLICY "Allow anyone to post comments" 
-    ON public.comments FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow authenticated users to post comments" 
+    ON public.comments FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
 
 -- 5. BOOKMARKS Table
@@ -112,14 +134,21 @@ CREATE TABLE IF NOT EXISTS public.bookmarks (
 -- Enable RLS for Bookmarks
 ALTER TABLE public.bookmarks ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow users to read bookmarks" 
-    ON public.bookmarks FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow users to read their own bookmarks" ON public.bookmarks;
+DROP POLICY IF EXISTS "Allow users to add their own bookmarks" ON public.bookmarks;
+DROP POLICY IF EXISTS "Allow users to delete their own bookmarks" ON public.bookmarks;
+DROP POLICY IF EXISTS "Allow users to read bookmarks" ON public.bookmarks;
+DROP POLICY IF EXISTS "Allow users to add bookmarks" ON public.bookmarks;
+DROP POLICY IF EXISTS "Allow users to delete bookmarks" ON public.bookmarks;
 
-CREATE POLICY "Allow users to add bookmarks" 
-    ON public.bookmarks FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow users to read their own bookmarks" 
+    ON public.bookmarks FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Allow users to delete bookmarks" 
-    ON public.bookmarks FOR DELETE USING (true);
+CREATE POLICY "Allow users to add their own bookmarks" 
+    ON public.bookmarks FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Allow users to delete their own bookmarks" 
+    ON public.bookmarks FOR DELETE USING (auth.uid() = user_id);
 
 
 -- 6. TEAMS Table
@@ -134,11 +163,16 @@ CREATE TABLE IF NOT EXISTS public.teams (
 -- Enable RLS for Teams
 ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow anyone to read teams" 
-    ON public.teams FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow authenticated users to read teams" ON public.teams;
+DROP POLICY IF EXISTS "Allow authenticated users to create teams" ON public.teams;
+DROP POLICY IF EXISTS "Allow anyone to read teams" ON public.teams;
+DROP POLICY IF EXISTS "Allow anyone to create teams" ON public.teams;
 
-CREATE POLICY "Allow anyone to create teams" 
-    ON public.teams FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow authenticated users to read teams" 
+    ON public.teams FOR SELECT USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated users to create teams" 
+    ON public.teams FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
 
 -- 7. TEAM MEMBERS Table
@@ -154,14 +188,21 @@ CREATE TABLE IF NOT EXISTS public.team_members (
 -- Enable RLS for Team Members
 ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow anyone to view team members" 
-    ON public.team_members FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow authenticated users to view team members" ON public.team_members;
+DROP POLICY IF EXISTS "Allow team managers to add members" ON public.team_members;
+DROP POLICY IF EXISTS "Allow team managers to remove members" ON public.team_members;
+DROP POLICY IF EXISTS "Allow anyone to view team members" ON public.team_members;
+DROP POLICY IF EXISTS "Allow anyone to add members" ON public.team_members;
+DROP POLICY IF EXISTS "Allow anyone to remove members" ON public.team_members;
 
-CREATE POLICY "Allow anyone to add members" 
-    ON public.team_members FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow authenticated users to view team members" 
+    ON public.team_members FOR SELECT USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Allow anyone to remove members" 
-    ON public.team_members FOR DELETE USING (true);
+CREATE POLICY "Allow team managers to add members" 
+    ON public.team_members FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow team managers to remove members" 
+    ON public.team_members FOR DELETE USING (auth.role() = 'authenticated');
 
 
 -- 8. Enable Realtime triggers for live sync
