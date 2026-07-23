@@ -4,6 +4,7 @@ import os
 import urllib.request
 import urllib.parse
 import traceback
+import base64
 
 PORT = int(os.environ.get('PORT', 8000))
 
@@ -38,7 +39,28 @@ def is_supabase_enabled():
         and not SUPABASE_ANON_KEY.startswith("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.your-key-here")
     )
 
-# --- 2. Automatic SQL Migrations check ---
+# --- 2. Native JWT Decoder (standard library only) ---
+def decode_jwt_payload(jwt):
+    try:
+        parts = jwt.split('.')
+        if len(parts) < 2:
+            return {}
+        payload_b64 = parts[1]
+        # Pad string to valid length
+        padding = '=' * (4 - (len(payload_b64) % 4))
+        decoded = base64.urlsafe_b64decode(payload_b64 + padding).decode('utf-8')
+        return json.loads(decoded)
+    except Exception as e:
+        print(f"JWT payload decode failed: {e}")
+        return {}
+
+def get_user_id_from_jwt(jwt):
+    if not jwt:
+        return None
+    payload = decode_jwt_payload(jwt)
+    return payload.get('sub', None)
+
+# --- 3. Automatic SQL Migrations check ---
 def run_supabase_migrations():
     if not is_supabase_enabled():
         return
@@ -114,7 +136,7 @@ print(f"- Supabase Enabled: {is_supabase_enabled()}")
 if not is_supabase_enabled():
     print("WARNING: Supabase URL and Anon Key are missing or are default placeholders. All database calls will fail with 503 Service Unavailable.")
 
-# --- 3. Supabase REST API Helper ---
+# --- 4. Supabase REST API Helper ---
 def supabase_api_call(endpoint, method='GET', body=None, user_jwt=None, is_auth=False):
     base_url = SUPABASE_URL.rstrip('/')
     api_path = "/auth/v1/" if is_auth else "/rest/v1/"
@@ -149,7 +171,7 @@ def supabase_api_call(endpoint, method='GET', body=None, user_jwt=None, is_auth=
         print(f"Supabase Request Error on {method} {url}: {e}")
         raise e
 
-# --- 4. Supabase Auth API Helper ---
+# --- 5. Supabase Auth API Helper ---
 def supabase_auth_req(path, method='POST', body=None):
     url = f"{SUPABASE_URL.rstrip('/')}/auth/v1/{path.lstrip('/')}"
     headers = {
@@ -165,7 +187,7 @@ def supabase_auth_req(path, method='POST', body=None):
         print(f"Supabase auth request failed: {e}")
         raise e
 
-# --- 5. OpenAI Client Helper ---
+# --- 6. OpenAI Client Helper ---
 def openai_gpt_generate(prompt):
     if not OPENAI_API_KEY or OPENAI_API_KEY.startswith("sk-proj-your-openai"):
         return None
@@ -201,7 +223,7 @@ def openai_gpt_generate(prompt):
         print(f"OpenAI Generation API failed: {e}")
         return None
 
-# --- 6. Main HTTP Request Router ---
+# --- 7. Main HTTP Request Router ---
 class WhatsPollHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         # Disable caching for API development convenience
@@ -392,11 +414,13 @@ class WhatsPollHandler(http.server.SimpleHTTPRequestHandler):
 
         try:
             jwt = self.get_user_jwt()
+            user_id = get_user_id_from_jwt(jwt)
             poll_row = {
                 "title": question,
                 "description": advice,
                 "options": options,
-                "completion_time": completion_time
+                "completion_time": completion_time,
+                "created_by": user_id
             }
             inserted_poll = supabase_api_call("polls", method='POST', body=poll_row, user_jwt=jwt)
             self.handle_get_state()
@@ -414,14 +438,25 @@ class WhatsPollHandler(http.server.SimpleHTTPRequestHandler):
 
         try:
             jwt = self.get_user_jwt()
+            user_id = get_user_id_from_jwt(jwt)
+            
             polls = supabase_api_call("polls?order=created_at.desc&limit=1", user_jwt=jwt)
             if not polls:
                 self.respond_json(400, {"error": "No active poll found to vote on."})
                 return
             
             poll_id = polls[0]['id']
+            
+            # Prevent 409 unique constraint errors: delete old vote first if exists
+            if user_id:
+                try:
+                    supabase_api_call(f"votes?poll_id=eq.{poll_id}&user_id=eq.{user_id}", method='DELETE', user_jwt=jwt)
+                except Exception:
+                    pass
+            
             vote_row = {
                 "poll_id": poll_id,
+                "user_id": user_id,
                 "option_text": option_text,
                 "option_emoji": option_emoji,
                 "confidence": confidence,
