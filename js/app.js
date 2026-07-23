@@ -1,6 +1,6 @@
 // WhatsPoll Main Coordinator (State, Routing, Navigation, Themes & Supabase Auth)
 
-// Unified WhatsPoll API Fetch Wrapper with Offline Fallback & Sync Queue
+// Unified WhatsPoll API Fetch Wrapper with Real-time Error Handling
 window.WhatsPollFetch = async function(url, options = {}) {
     options.headers = options.headers || {};
     const jwt = localStorage.getItem('whatspoll-jwt');
@@ -15,160 +15,35 @@ window.WhatsPollFetch = async function(url, options = {}) {
             const errData = await res.json().catch(() => ({}));
             throw new Error(errData.error || errData.message || `HTTP ${res.status}`);
         }
+        
+        // Remove connection error toast if present
+        const errToast = document.getElementById('connection-error-toast');
+        if (errToast) errToast.remove();
+        
         return res;
     } catch (err) {
-        console.warn(`WhatsPollFetch failed for ${url}, executing offline fallback:`, err);
-        return handleOfflineFallback(url, options, err);
+        console.error(`WhatsPollFetch API connection error for ${url}:`, err);
+        showConnectionError(err.message || "Failed to reach server");
+        throw err;
     }
 };
 
-async function handleOfflineFallback(url, options, originalError) {
-    const method = (options.method || 'GET').toUpperCase();
-    
-    // GET requests cache fallback
-    if (method === 'GET' && url.includes('/api/state')) {
-        const localState = localStorage.getItem('whatspoll-offline-state');
-        if (localState) {
-            return {
-                ok: true,
-                status: 200,
-                json: async () => JSON.parse(localState)
-            };
-        }
-        return {
-            ok: true,
-            status: 200,
-            json: async () => window.WhatsPollState
-        };
+function showConnectionError(message) {
+    let errToast = document.getElementById('connection-error-toast');
+    if (!errToast) {
+        errToast = document.createElement('div');
+        errToast.id = 'connection-error-toast';
+        errToast.style.cssText = "position:fixed; bottom:24px; right:24px; background-color:#DC2626; color:#ffffff; padding:16px 20px; border-radius:8px; font-weight:600; font-size:13px; z-index:10000; box-shadow:0 4px 16px rgba(0,0,0,0.2); display:flex; align-items:center; gap:10px; border-left:4px solid #7f1d1d; transition: all 0.2s ease;";
+        document.body.appendChild(errToast);
     }
-    
-    // POST request syncing queue
-    if (method === 'POST') {
-        const payload = options.body ? JSON.parse(options.body) : {};
-        
-        // Save to offline sync queue
-        const queue = JSON.parse(localStorage.getItem('whatspoll-offline-queue') || '[]');
-        queue.push({ url, method, payload, time: Date.now() });
-        localStorage.setItem('whatspoll-offline-queue', JSON.stringify(queue));
-        
-        showOfflineIndicator();
-
-        // Calculate and cache locally
-        let localState = JSON.parse(localStorage.getItem('whatspoll-offline-state') || JSON.stringify(window.WhatsPollState));
-        
-        if (url.includes('/api/poll')) {
-            localState.currentPoll = {
-                title: payload.question,
-                description: payload.advice || "",
-                options: payload.options,
-                completionTime: payload.time || "1 min",
-                responsesCount: 0,
-                winningOption: "N/A",
-                confidenceAvg: "0%",
-                voteCounts: new Array(payload.options.length).fill(0)
-            };
-            localState.votes = [];
-            localState.history.unshift({
-                id: Date.now(),
-                question: payload.question,
-                choiceText: "Created by you (Offline)",
-                choiceEmoji: payload.options[0]?.emoji || '💡',
-                date: "Today",
-                type: "created",
-                favorite: false,
-                responses: 0
-            });
-        } else if (url.includes('/api/vote')) {
-            const newVote = {
-                optionText: payload.optionText,
-                optionEmoji: payload.optionEmoji || '💡',
-                confidence: payload.confidence || 80,
-                reason: payload.reason || "",
-                timestamp: "Now (Offline)"
-            };
-            localState.votes.push(newVote);
-            
-            const poll = localState.currentPoll;
-            if (poll) {
-                const tallies = new Array(poll.options.length).fill(0);
-                poll.options.forEach((opt, idx) => {
-                    tallies[idx] = localState.votes.filter(v => v.optionText === opt.text).length;
-                });
-                poll.voteCounts = tallies;
-                poll.responsesCount = localState.votes.length;
-                if (localState.votes.length > 0) {
-                    const maxIdx = tallies.indexOf(Math.max(...tallies));
-                    poll.winningOption = poll.options[maxIdx].text;
-                    const sumConf = localState.votes.reduce((acc, curr) => acc + curr.confidence, 0);
-                    poll.confidenceAvg = `${Math.round(sumConf / localState.votes.length)}%`;
-                }
-            }
-        }
-        
-        localStorage.setItem('whatspoll-offline-state', JSON.stringify(localState));
-        window.WhatsPollState = localState;
-        
-        return {
-            ok: true,
-            status: 200,
-            json: async () => ({ status: "success", state: localState, offline: true })
-        };
-    }
-    
-    throw originalError;
-}
-
-function showOfflineIndicator() {
-    let indicator = document.getElementById('offline-sync-indicator');
-    if (!indicator) {
-        indicator = document.createElement('div');
-        indicator.id = 'offline-sync-indicator';
-        indicator.style.cssText = "position:fixed; bottom:24px; right:24px; background-color:#F59E0B; color:#ffffff; padding:12px 18px; border-radius:8px; font-weight:600; font-size:13px; z-index:10000; box-shadow:0 4px 12px rgba(0,0,0,0.15); display:flex; align-items:center; gap:8px;";
-        indicator.innerHTML = `<i data-lucide="wifi-off" style="width:16px; height:16px;"></i> Offline Mode: Changes saved locally.`;
-        document.body.appendChild(indicator);
-        if (window.lucide) window.lucide.createIcons();
-    }
-}
-
-// Auto sync when online status changes
-window.addEventListener('online', () => {
-    syncOfflineQueue();
-});
-
-async function syncOfflineQueue() {
-    const queue = JSON.parse(localStorage.getItem('whatspoll-offline-queue') || '[]');
-    if (queue.length === 0) return;
-    
-    const indicator = document.getElementById('offline-sync-indicator');
-    if (indicator) indicator.remove();
-    
-    const syncToast = document.createElement('div');
-    syncToast.style.cssText = "position:fixed; bottom:24px; right:24px; background-color:#10B981; color:#ffffff; padding:12px 18px; border-radius:8px; font-weight:600; font-size:13px; z-index:10000; box-shadow:0 4px 12px rgba(0,0,0,0.15);";
-    syncToast.innerHTML = `Syncing changes with cloud database...`;
-    document.body.appendChild(syncToast);
-
-    for (const item of queue) {
-        try {
-            await fetch(item.url, {
-                method: item.method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('whatspoll-jwt')}`
-                },
-                body: JSON.stringify(item.payload)
-            });
-        } catch (e) {
-            console.error("Failed to sync offline item:", item, e);
-        }
-    }
-    
-    localStorage.removeItem('whatspoll-offline-queue');
-    syncToast.innerHTML = `Synced successfully with Supabase!`;
-    setTimeout(() => syncToast.remove(), 2000);
-    
-    if (window.WhatsPollApp) {
-        window.WhatsPollApp.fetchServerState();
-    }
+    errToast.innerHTML = `
+        <i data-lucide="alert-triangle" style="width:18px; height:18px; color:#fca5a5;"></i>
+        <div>
+            <div style="font-weight:700;">Database Connection Error</div>
+            <div style="font-weight:400; font-size:11px; color:#fca5a5; margin-top:2px;">${message}</div>
+        </div>
+    `;
+    if (window.lucide) window.lucide.createIcons();
 }
 
 class AppController {
@@ -194,7 +69,7 @@ class AppController {
         this.authPasswordInput = document.getElementById('auth-password');
         this.authErrorMsg = document.getElementById('auth-error-msg');
         
-        this.authState = 'signin'; // 'signin' or 'signup'
+        this.authState = 'signin';
         
         this.init();
     }
@@ -216,7 +91,6 @@ class AppController {
             if (res.ok) {
                 const data = await res.json();
                 window.WhatsPollState = data;
-                localStorage.setItem('whatspoll-offline-state', JSON.stringify(data));
                 
                 // Rerender active section
                 const activeSec = document.querySelector('.content-section.active');
@@ -237,7 +111,6 @@ class AppController {
             const userData = JSON.parse(user);
             const name = userData.user_metadata?.name || userData.email.split('@')[0].toUpperCase();
             
-            // Show avatar, toggle Login btn text to Logout
             if (this.profileAvatarBtn) {
                 this.profileAvatarBtn.innerText = name.slice(0, 2).toUpperCase();
                 this.profileAvatarBtn.style.display = 'flex';
@@ -310,11 +183,9 @@ class AppController {
                     // Sign out
                     localStorage.removeItem('whatspoll-jwt');
                     localStorage.removeItem('whatspoll-user');
-                    localStorage.removeItem('whatspoll-offline-state');
                     this.syncAuthUserState();
                     this.fetchServerState();
                 } else {
-                    // Show auth popup modal
                     this.authState = 'signin';
                     this.renderAuthModalState();
                     this.authModal.classList.remove('hidden');
@@ -390,7 +261,6 @@ class AppController {
 
             const data = await res.json();
             if (res.ok && !data.error) {
-                // Set Session items
                 const token = data.access_token;
                 const user = data.user;
                 if (token && user) {
